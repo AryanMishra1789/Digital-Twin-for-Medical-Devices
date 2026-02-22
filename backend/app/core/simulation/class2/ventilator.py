@@ -36,10 +36,22 @@ class VentilatorTwin(BaseDigitalTwin):
         self.max_flow_rate    = max_flow_rate
         self.max_pressure     = max_pressure
 
+        # Component Modes
+        self.component_modes = {
+            "Flow Sensor": "Ideal",
+            "Pressure Sensor": "Ideal",
+            "Blower Motor": "Ideal",
+            "Safety Monitor": "Active"
+        }
+
         # State
         self.motor_rpm   = 0.0
         self.flow_rate   = 0.0
         self.pressure    = 0.0
+        
+        # Raw physical values (pre-sensor)
+        self.physics_flow = 0.0
+        self.physics_pressure = 0.0
 
         # Limit flags (set when a safety threshold is exceeded)
         self.pressure_limit_exceeded  = False
@@ -49,27 +61,43 @@ class VentilatorTwin(BaseDigitalTwin):
     def step(self) -> dict:
         """
         One simulation tick (Δt = 1 virtual second).
-
-        RPM tracks the target flow set-point via proportional control.
-        Pressure is computed from current flow (algebraic relationship).
         """
+        import random
+
+        # Motor behavior
+        motor_bias = 1.0
+        if self.component_modes["Blower Motor"] == "Degraded":
+            motor_bias = 0.8
+        elif self.component_modes["Blower Motor"] == "Failed":
+            motor_bias = 0.0
+
         target_rpm = self.target_flow_rate * self._RPM_PER_LPM
         rpm_error  = target_rpm - self.motor_rpm
-        self.motor_rpm = max(0.0, self.motor_rpm + self._KP * rpm_error)
+        self.motor_rpm = max(0.0, self.motor_rpm + (self._KP * rpm_error * motor_bias))
 
-        self.flow_rate = self.motor_rpm / self._RPM_PER_LPM
+        self.physics_flow = self.motor_rpm / self._RPM_PER_LPM
+        
+        # Pressure calculation
         if self.fidelity == "L3":
-            # L3 — First-principle Dynamics (Simplified)
-            # Pressure = (Flow / Resistance) + (Volume / Compliance)
-            resistance = 5.0 # cmH2O/L/s
-            compliance = 0.05 # L/cmH2O
-            
-            # Simple volume accumulation
-            volume = self.flow_rate / 60.0 # L
-            self.pressure = (self.flow_rate / resistance) + (volume / compliance)
+            resistance = 5.0 
+            compliance = 0.05 
+            volume = self.physics_flow / 60.0 
+            self.physics_pressure = (self.physics_flow / resistance) + (volume / compliance)
         else:
-            # L2 — Linear proportional model
-            self.pressure  = self.flow_rate * self._PRESSURE_GAIN
+            self.physics_pressure = self.physics_flow * self._PRESSURE_GAIN
+
+        # Sensor interpretation (with noise/faults)
+        self.flow_rate = self.physics_flow
+        if self.component_modes["Flow Sensor"] == "Noisy":
+            self.flow_rate += random.uniform(-2.0, 2.0)
+        elif self.component_modes["Flow Sensor"] == "Failed":
+            self.flow_rate = 0.0
+
+        self.pressure = self.physics_pressure
+        if self.component_modes["Pressure Sensor"] == "Noisy":
+            self.pressure += random.uniform(-1.0, 1.0)
+        elif self.component_modes["Pressure Sensor"] == "Failed":
+            self.pressure = -1.0 # Stuck low
 
         # Evaluate safety limits
         self.pressure_limit_exceeded  = self.pressure  > self.max_pressure

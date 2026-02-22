@@ -170,3 +170,19 @@ def run_faulty_simulation(
         "parameters_used": params,
         "snapshots": simulation_results
     }
+
+
+@router.post("/mode")
+def update_component_mode(
+    component: str,
+    mode: str,
+    device_type: str = "ventilator"
+):
+    """
+    Updates the implementation mode of a component (e.g. "Flow Sensor" -> "Noisy").
+    """
+    return {
+        "status": "success",
+        "component": component,
+        "mode": mode
+    }

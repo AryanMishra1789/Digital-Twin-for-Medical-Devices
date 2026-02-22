@@ -65,8 +65,8 @@ export default function App() {
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-8 flex-1">
-        <div className="glass-card p-8 min-h-[600px]">
+      <main className={`container mx-auto px-6 py-8 flex-1 ${view === 'simulation' ? '!max-w-none !px-4 !py-4' : ''}`}>
+        <div className={view === 'simulation' ? '' : 'glass-card p-8 min-h-[600px]'}>
           {view === 'requirements' && <RequirementsForm deviceType={deviceType} />}
           {view === 'design' && <DiagramView deviceType={deviceType} />}
           {view === 'simulation' && <SimulationView deviceType={deviceType} />}
@@ -74,11 +74,13 @@ export default function App() {
         </div>
       </main>
 
-      <footer className="border-t border-slate-800 py-6 text-center">
-        <p className="text-sm text-slate-500">
-          © {new Date().getFullYear()} VitaBlueprint Engine — Industry-Grade System Engineering
-        </p>
-      </footer>
+      {view !== 'simulation' && (
+        <footer className="border-t border-slate-800 py-6 text-center">
+          <p className="text-sm text-slate-500">
+            © {new Date().getFullYear()} VitaBlueprint Engine — Industry-Grade System Engineering
+          </p>
+        </footer>
+      )}
     </div>
   )
 }
