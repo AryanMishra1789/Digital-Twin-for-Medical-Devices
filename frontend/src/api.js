@@ -14,5 +14,8 @@ export const runFaultySimulation = (deviceType, parameter, bias, steps = 10) =>
 export const generateCodeRepo = () => client.post('/codegen/generate/')
 export const getTraceability = () => client.get('/export/traceability/').then(r => r.data)
 export const validateDesign = () => client.post('/export/validate/')
+export const updateComponentMode = (deviceType, component, mode) =>
+  client.post('/simulation/mode/', null, { params: { device_type: deviceType, component, mode } })
+
 
 export default client

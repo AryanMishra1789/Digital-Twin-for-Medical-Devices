@@ -22,6 +22,11 @@ class BaseDigitalTwin:
         self.fidelity = fidelity
         self.time = 0
         self.state_log = []
+        self.component_modes = {} # e.g. {"Flow Sensor": "Ideal"}
+
+    def set_component_mode(self, component: str, mode: str):
+        """Sets the implementation mode for a specific component."""
+        self.component_modes[component] = mode
 
     def step(self):
         """
